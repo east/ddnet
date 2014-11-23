@@ -8,15 +8,28 @@
 #include "network.h"
 
 
-bool CNetServer::Open(NETADDR BindAddr, CNetBan *pNetBan, int MaxClients, int MaxClientsPerIP, int Flags)
+bool CNetServer::OpenEx(NETADDR *pBindAddrs, int NumBindAddrs, class CNetBan *pNetBan, int MaxClients, int MaxClientsPerIP, int Flags)
 {
 	// zero out the whole structure
 	mem_zero(this, sizeof(*this));
+	
+	// open sockets
+	for (int i = 0; i < NumBindAddrs; i++)
+	{
+		char aBuf[256];
+		net_addr_str(&pBindAddrs[i], aBuf, sizeof(aBuf), 1);
+		dbg_msg("netserver", "opening %s", aBuf);
 
-	// open socket
-	m_Socket = net_udp_create(BindAddr);
-	if(!m_Socket.type)
-		return false;
+		// open socket
+		m_aSockets[i] = net_udp_create(pBindAddrs[i]);
+		if(!m_aSockets[i].type)
+			return false;
+	}
+
+	m_NumSockets = NumBindAddrs;
+
+	//TODO: remove this
+	m_Socket = m_aSockets[0];
 
 	m_pNetBan = pNetBan;
 
@@ -83,10 +96,7 @@ int CNetServer::Update()
 	return 0;
 }
 
-/*
-	TODO: chopp up this function into smaller working parts
-*/
-int CNetServer::Recv(CNetChunk *pChunk)
+int CNetServer::RecvSocket(NETSOCKET Socket, CNetChunk *pChunk)
 {
 	while(1)
 	{
@@ -97,7 +107,7 @@ int CNetServer::Recv(CNetChunk *pChunk)
 			return 1;
 
 		// TODO: empty the recvinfo
-		int Bytes = net_udp_recv(m_Socket, &Addr, m_RecvUnpacker.m_aBuffer, NET_MAX_PACKETSIZE);
+		int Bytes = net_udp_recv(Socket, &Addr, m_RecvUnpacker.m_aBuffer, NET_MAX_PACKETSIZE);
 
 		// no more packets for now
 		if(Bytes <= 0)
@@ -108,7 +118,7 @@ int CNetServer::Recv(CNetChunk *pChunk)
 		if(NetBan() && NetBan()->IsBanned(&Addr, aBuf, sizeof(aBuf)))
 		{
 			// banned, reply with a message
-			CNetBase::SendControlMsg(m_Socket, &Addr, 0, NET_CTRLMSG_CLOSE, aBuf, str_length(aBuf)+1);
+			CNetBase::SendControlMsg(Socket, &Addr, 0, NET_CTRLMSG_CLOSE, aBuf, str_length(aBuf)+1);
 			continue;
 		}
 
@@ -170,7 +180,7 @@ int CNetServer::Recv(CNetChunk *pChunk)
 								{
 									char aBuf[128];
 									str_format(aBuf, sizeof(aBuf), "Only %d players with the same IP are allowed", m_MaxClientsPerIP);
-									CNetBase::SendControlMsg(m_Socket, &Addr, 0, NET_CTRLMSG_CLOSE, aBuf, sizeof(aBuf));
+									CNetBase::SendControlMsg(Socket, &Addr, 0, NET_CTRLMSG_CLOSE, aBuf, sizeof(aBuf));
 									return 0;
 								}
 							}
@@ -191,7 +201,7 @@ int CNetServer::Recv(CNetChunk *pChunk)
 						if(!Found)
 						{
 							const char FullMsg[] = "This server is full";
-							CNetBase::SendControlMsg(m_Socket, &Addr, 0, NET_CTRLMSG_CLOSE, FullMsg, sizeof(FullMsg));
+							CNetBase::SendControlMsg(Socket, &Addr, 0, NET_CTRLMSG_CLOSE, FullMsg, sizeof(FullMsg));
 						}
 					}
 				}
@@ -216,6 +226,21 @@ int CNetServer::Recv(CNetChunk *pChunk)
 			}
 		}
 	}
+	return 0;
+}
+
+/*
+	TODO: chopp up this function into smaller working parts
+*/
+int CNetServer::Recv(CNetChunk *pChunk)
+{
+	// check all sockets
+	for (int i = 0; i < m_NumSockets; i++)
+	{
+		if (RecvSocket(m_aSockets[i], pChunk) == 1)
+			return 1;
+	}
+
 	return 0;
 }
 

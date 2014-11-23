@@ -314,6 +314,8 @@ CServer::CServer()
 
 	m_RconRestrict = -1;
 
+	m_NumListenAddrs = 0;
+
 	Init();
 }
 
@@ -1567,19 +1569,35 @@ int CServer::Run()
 	if(g_Config.m_Bindaddr[0] && net_host_lookup(g_Config.m_Bindaddr, &BindAddr, NETTYPE_ALL) == 0)
 	{
 		// sweet!
-		BindAddr.type = NETTYPE_ALL;
+		//BindAddr.type = NETTYPE_ALL;
 		BindAddr.port = g_Config.m_SvPort;
 	}
 	else
 	{
 		mem_zero(&BindAddr, sizeof(BindAddr));
-		BindAddr.type = NETTYPE_ALL;
+		BindAddr.type = NETTYPE_IPV4;
 		BindAddr.port = g_Config.m_SvPort;
 	}
+	
+	// parse additional listening addresses	
+	NETADDR aBindAddrs[MAX_LISTEN_ADDRS+1];
+	mem_zero(aBindAddrs, sizeof(aBindAddrs));
+	aBindAddrs[0] = BindAddr; // main address
 
-	if(!m_NetServer.Open(BindAddr, &m_ServerBan, g_Config.m_SvMaxClients, g_Config.m_SvMaxClientsPerIP, 0))
+	for (int i = 0; i < m_NumListenAddrs; i++)
 	{
-		dbg_msg("server", "couldn't open socket. port %d might already be in use", g_Config.m_SvPort);
+		if (net_host_lookup(m_aListenAddrs[i], &aBindAddrs[i+1], NETTYPE_ALL) != 0)
+		{
+			dbg_msg("server", "failed to parse listening address %s", m_aListenAddrs[i]);
+			return -1;
+		}
+		
+		dbg_msg("server", "listening address %s added", m_aListenAddrs[i]);
+	}
+
+	if(!m_NetServer.OpenEx(aBindAddrs, m_NumListenAddrs+1, &m_ServerBan, g_Config.m_SvMaxClients, g_Config.m_SvMaxClientsPerIP, 0))
+	{
+		dbg_msg("server", "failed to init network server");
 		return -1;
 	}
 
@@ -1923,6 +1941,17 @@ void CServer::ConLogout(IConsole::IResult *pResult, void *pUser)
 	}
 }
 
+void CServer::ConAddListenAddr(IConsole::IResult *pResult, void *pUser)
+{
+	CServer *pServer = (CServer *)pUser;
+
+	if (pServer->m_NumListenAddrs == MAX_LISTEN_ADDRS)
+		return; // fail silently
+
+	str_copy(pServer->m_aListenAddrs[pServer->m_NumListenAddrs], pResult->GetString(0), sizeof(pServer->m_aListenAddrs[pServer->m_NumListenAddrs]));
+	pServer->m_NumListenAddrs++;
+}
+
 void CServer::ConchainSpecialInfoupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
 {
 	pfnCallback(pResult, pCallbackUserData);
@@ -2055,6 +2084,8 @@ void CServer::RegisterCommands()
 	Console()->Register("stoprecord", "", CFGFLAG_SERVER, ConStopRecord, this, "Stop recording");
 
 	Console()->Register("reload", "", CFGFLAG_SERVER, ConMapReload, this, "Reload the map");
+	
+	Console()->Register("add_listen_addr", "s", CFGFLAG_SERVER, ConAddListenAddr, this, "additional listening address <ip>:<port>");
 
 	Console()->Chain("sv_name", ConchainSpecialInfoupdate, this);
 	Console()->Chain("password", ConchainSpecialInfoupdate, this);

@@ -255,7 +255,14 @@ class CNetServer
 		CNetConnection m_Connection;
 	};
 
+	enum
+	{
+		MAX_SOCKETS=64,
+	};
+
 	NETSOCKET m_Socket;
+	NETSOCKET m_aSockets[MAX_SOCKETS];
+	int m_NumSockets;
 	class CNetBan *m_pNetBan;
 	CSlot m_aSlots[NET_MAX_CLIENTS];
 	int m_MaxClients;
@@ -271,11 +278,12 @@ public:
 	int SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_DELCLIENT pfnDelClient, void *pUser);
 
 	//
-	bool Open(NETADDR BindAddr, class CNetBan *pNetBan, int MaxClients, int MaxClientsPerIP, int Flags);
+	bool OpenEx(NETADDR *pBindAddrs, int NumBindAddrs, class CNetBan *pNetBan, int MaxClients, int MaxClientsPerIP, int Flags);
 	int Close();
 
 	//
 	int Recv(CNetChunk *pChunk);
+	int RecvSocket(NETSOCKET Socket, CNetChunk *pChunk);
 	int Send(CNetChunk *pChunk);
 	int Update();
 
