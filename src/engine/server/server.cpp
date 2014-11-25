@@ -1725,7 +1725,7 @@ int CServer::Run()
 				if(g_Config.m_SvShutdownWhenEmpty)
 					m_RunServer = false;
 				else
-					m_NetServer.ReadWait();
+					m_NetServer.ReadWait(time_freq());
 			}
 			else
 			{
@@ -1735,7 +1735,7 @@ int CServer::Run()
 
 				if(x > 0)
 				{
-					net_socket_read_wait(m_NetServer.Socket(), x);
+					m_NetServer.ReadWait(x);
 				}
 			}
 		}

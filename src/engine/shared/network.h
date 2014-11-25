@@ -307,7 +307,7 @@ public:
 	int ResetErrorString(int ClientID);
 	const char *ErrorString(int ClientID);
 
-	void ReadWait();
+	void ReadWait(int Time);
 };
 
 class CNetConsole

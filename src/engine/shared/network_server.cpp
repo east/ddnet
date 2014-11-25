@@ -49,9 +49,9 @@ bool CNetServer::OpenEx(NETADDR *pBindAddrs, int NumBindAddrs, class CNetBan *pN
 	return true;
 }
 
-void CNetServer::ReadWait()
+void CNetServer::ReadWait(int Time)
 {
-	net_socket_list_read_wait(m_aSockets, m_NumSockets, time_freq());
+	net_socket_list_read_wait(m_aSockets, m_NumSockets, Time);
 }
 
 int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_DELCLIENT pfnDelClient, void *pUser)
