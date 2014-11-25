@@ -27,6 +27,7 @@ bool CNetServer::OpenEx(NETADDR *pBindAddrs, int NumBindAddrs, class CNetBan *pN
 	}
 
 	m_NumSockets = NumBindAddrs;
+	m_LastChunkSock = -1;
 
 	//TODO: remove this
 	m_Socket = m_aSockets[0];
@@ -46,6 +47,11 @@ bool CNetServer::OpenEx(NETADDR *pBindAddrs, int NumBindAddrs, class CNetBan *pN
 		m_aSlots[i].m_Connection.Init(m_Socket, true);
 
 	return true;
+}
+
+void CNetServer::ReadWait()
+{
+	net_socket_list_read_wait(m_aSockets, m_NumSockets, time_freq());
 }
 
 int CNetServer::SetCallbacks(NETFUNC_NEWCLIENT pfnNewClient, NETFUNC_DELCLIENT pfnDelClient, void *pUser)
@@ -191,6 +197,7 @@ int CNetServer::RecvSocket(NETSOCKET Socket, CNetChunk *pChunk)
 							if(m_aSlots[i].m_Connection.State() == NET_CONNSTATE_OFFLINE)
 							{
 								Found = true;
+								m_aSlots[i].m_Connection.SetSocket(Socket);
 								m_aSlots[i].m_Connection.Feed(&m_RecvUnpacker.m_Data, &Addr);
 								if(m_pfnNewClient)
 									m_pfnNewClient(i, m_UserPtr);
@@ -234,11 +241,14 @@ int CNetServer::RecvSocket(NETSOCKET Socket, CNetChunk *pChunk)
 */
 int CNetServer::Recv(CNetChunk *pChunk)
 {
-	// check all sockets
+	// receive data from all sockets
 	for (int i = 0; i < m_NumSockets; i++)
 	{
 		if (RecvSocket(m_aSockets[i], pChunk) == 1)
+		{
+			m_LastChunkSock = i;
 			return 1;
+		}
 	}
 
 	return 0;
@@ -255,7 +265,7 @@ int CNetServer::Send(CNetChunk *pChunk)
 	if(pChunk->m_Flags&NETSENDFLAG_CONNLESS)
 	{
 		// send connectionless packet
-		CNetBase::SendPacketConnless(m_Socket, &pChunk->m_Address, pChunk->m_pData, pChunk->m_DataSize);
+		CNetBase::SendPacketConnless(m_aSockets[m_LastChunkSock], &pChunk->m_Address, pChunk->m_pData, pChunk->m_DataSize);
 	}
 	else
 	{

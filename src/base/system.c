@@ -1663,6 +1663,44 @@ int net_socket_read_wait(NETSOCKET sock, int time)
 	return 0;
 }
 
+void net_socket_list_read_wait(NETSOCKET *sockets, int num_sockets, int time)
+{
+	struct timeval tv;
+	fd_set readfds;
+	int sockid;
+
+	tv.tv_sec = time / 1000000;
+	tv.tv_usec = time % 1000000;
+	sockid = 0;
+
+	FD_ZERO(&readfds);
+
+
+	int i;
+	for (i = 0; i < num_sockets; i++)
+	{
+		NETSOCKET sock = sockets[i];
+		if(sock.ipv4sock >= 0)
+		{
+			FD_SET(sock.ipv4sock, &readfds);
+			if (sock.ipv4sock > sockid)
+				sockid = sock.ipv4sock;
+		}
+		if(sock.ipv6sock >= 0)
+		{
+			FD_SET(sock.ipv6sock, &readfds);
+			if(sock.ipv6sock > sockid)
+				sockid = sock.ipv6sock;
+		}
+	}
+
+	/* don't care about writefds and exceptfds */
+	if(time < 0)
+		select(sockid+1, &readfds, NULL, NULL, NULL);
+	else
+		select(sockid+1, &readfds, NULL, NULL, &tv);
+}
+
 int time_timestamp()
 {
 	return time(0);

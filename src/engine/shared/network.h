@@ -196,6 +196,7 @@ public:
 	int AckSequence() const { return m_Ack; }
 	int SeqSequence() const { return m_Sequence; }
 	void SetTimedOut(const NETADDR *pAddr, int Sequence, int Ack);
+	void SetSocket(NETSOCKET Socket) { m_Socket = Socket; };
 };
 
 class CConsoleNetConnection
@@ -263,6 +264,7 @@ class CNetServer
 	NETSOCKET m_Socket;
 	NETSOCKET m_aSockets[MAX_SOCKETS];
 	int m_NumSockets;
+	int m_LastChunkSock;
 	class CNetBan *m_pNetBan;
 	CSlot m_aSlots[NET_MAX_CLIENTS];
 	int m_MaxClients;
@@ -304,6 +306,8 @@ public:
 
 	int ResetErrorString(int ClientID);
 	const char *ErrorString(int ClientID);
+
+	void ReadWait();
 };
 
 class CNetConsole
