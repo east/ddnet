@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include "system.h"
+#include "confusables.h"
 
 #if defined(CONF_FAMILY_UNIX)
 	#include <sys/time.h>
@@ -1998,6 +1999,26 @@ char str_uppercase(char c)
 int str_toint(const char *str) { return atoi(str); }
 float str_tofloat(const char *str) { return atof(str); }
 
+
+int str_utf8_comp_names(const char *a, const char *b)
+{
+	int codeA;
+	int codeB;
+	int diff;
+
+	while(*a && *b)
+	{
+		codeA = str_utf8_decode(&a);
+		codeB = str_utf8_decode(&b);
+		diff = codeA - codeB;
+
+		if((diff < 0 && !str_utf8_is_confusable(codeA, codeB))
+		|| (diff > 0 && !str_utf8_is_confusable(codeB, codeA)))
+			return diff;
+	}
+
+	return *a - *b;
+}
 
 int str_utf8_isspace(int code)
 {

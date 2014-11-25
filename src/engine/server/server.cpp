@@ -345,7 +345,7 @@ int CServer::TrySetClientName(int ClientID, const char *pName)
 	for(int i = 0; i < MAX_CLIENTS; i++)
 		if(i != ClientID && m_aClients[i].m_State >= CClient::STATE_READY)
 		{
-			if(str_comp(pName, m_aClients[i].m_aName) == 0)
+			if(str_utf8_comp_names(pName, m_aClients[i].m_aName) == 0)
 				return -1;
 		}
 
@@ -1533,7 +1533,7 @@ int CServer::LoadMap(const char *pMapName)
 	// load complete map into memory for download
 	{
 		IOHANDLE File = Storage()->OpenFile(aBuf, IOFLAG_READ, IStorage::TYPE_ALL);
-		m_CurrentMapSize = (int)io_length(File);
+		m_CurrentMapSize = (unsigned int)io_length(File);
 		if(m_pCurrentMapData)
 			mem_free(m_pCurrentMapData);
 		m_pCurrentMapData = (unsigned char *)mem_alloc(m_CurrentMapSize, 1);
@@ -1618,8 +1618,8 @@ int CServer::Run()
 
 	// start game
 	{
-		int64 ReportTime = time_get();
 		int ReportInterval = 3;
+		bool NonActive = false;
 
 		m_Lastheartbeat = 0;
 		m_GameStartTime = time_get();
@@ -1632,7 +1632,11 @@ int CServer::Run()
 
 		while(m_RunServer)
 		{
+			if(NonActive)
+				PumpNetwork();
+
 			set_new_tick();
+
 			int64 t = time_get();
 			int NewTicks = 0;
 
@@ -1706,34 +1710,10 @@ int CServer::Run()
 			// master server stuff
 			m_Register.RegisterUpdate(m_NetServer.NetType());
 
-			PumpNetwork();
+			if(!NonActive)
+				PumpNetwork();
 
-			if(ReportTime < time_get())
-			{
-				if(g_Config.m_Debug)
-				{
-					/*
-					static NETSTATS prev_stats;
-					NETSTATS stats;
-					netserver_stats(net, &stats);
-
-					perf_next();
-
-					if(config.dbg_pref)
-						perf_dump(&rootscope);
-
-					dbg_msg("server", "send=%8d recv=%8d",
-						(stats.send_bytes - prev_stats.send_bytes)/reportinterval,
-						(stats.recv_bytes - prev_stats.recv_bytes)/reportinterval);
-
-					prev_stats = stats;
-					*/
-				}
-
-				ReportTime += time_freq()*ReportInterval;
-			}
-
-			bool NonActive = true;
+			NonActive = true;
 
 			for(int c = 0; c < MAX_CLIENTS; c++)
 				if(m_aClients[c].m_State != CClient::STATE_EMPTY)
