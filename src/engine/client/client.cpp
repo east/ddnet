@@ -839,6 +839,9 @@ void CClient::DummyInfo()
 void CClient::GetServerInfo(CServerInfo *pServerInfo)
 {
 	mem_copy(pServerInfo, &m_CurrentServerInfo, sizeof(m_CurrentServerInfo));
+
+	if(m_DemoPlayer.IsPlaying() && g_Config.m_ClDemoAssumeRace)
+		str_copy(pServerInfo->m_aGameType, "DDraceNetwork", 14);
 }
 
 void CClient::ServerInfoRequest()
@@ -1455,22 +1458,6 @@ void CClient::ProcessConnlessPacket(CNetChunk *pPacket)
 				mem_copy(&m_CurrentServerInfo, &Info, sizeof(m_CurrentServerInfo));
 				m_CurrentServerInfo.m_NetAddr = m_ServerAddress;
 				m_CurrentServerInfoRequestTime = -1;
-
-				if(State() == IClient::STATE_ONLINE && !m_TimeoutCodeSent[g_Config.m_ClDummy])
-				{
-					if(str_find_nocase(Info.m_aGameType, "ddracenetw") || str_find_nocase(Info.m_aGameType, "ddnet"))
-					{
-						m_TimeoutCodeSent[g_Config.m_ClDummy] = true;
-						CNetMsg_Cl_Say Msg;
-						Msg.m_Team = 0;
-						char aBuf[256];
-						str_format(aBuf, sizeof(aBuf), "/timeout %s", g_Config.m_ClDummy ? g_Config.m_ClDummyTimeoutCode : g_Config.m_ClTimeoutCode);
-						Msg.m_pMessage = aBuf;
-						CMsgPacker Packer(Msg.MsgID());
-						Msg.Pack(&Packer);
-						SendMsgExY(&Packer, MSGFLAG_VITAL, false, g_Config.m_ClDummy);
-					}
-				}
 			}
 		}
 	}
@@ -1867,6 +1854,23 @@ void CClient::ProcessServerPacket(CNetChunk *pPacket)
 						int64 TickStart = GameTick*time_freq()/50;
 						int64 TimeLeft = (TickStart-Now)*1000 / time_freq();
 						m_GameTime[g_Config.m_ClDummy].Update(&m_GametimeMarginGraph, (GameTick-1)*time_freq()/50, TimeLeft, 0);
+					}
+
+					if(m_RecivedSnapshots[g_Config.m_ClDummy] > 50 && !m_TimeoutCodeSent[g_Config.m_ClDummy])
+					{
+						if(str_find_nocase(m_CurrentServerInfo.m_aGameType, "ddracenetw")
+							|| str_find_nocase(m_CurrentServerInfo.m_aGameType, "ddnet"))
+						{
+							m_TimeoutCodeSent[g_Config.m_ClDummy] = true;
+							CNetMsg_Cl_Say Msg;
+							Msg.m_Team = 0;
+							char aBuf[256];
+							str_format(aBuf, sizeof(aBuf), "/timeout %s", g_Config.m_ClDummy ? g_Config.m_ClDummyTimeoutCode : g_Config.m_ClTimeoutCode);
+							Msg.m_pMessage = aBuf;
+							CMsgPacker Packer(Msg.MsgID());
+							Msg.Pack(&Packer);
+							SendMsgExY(&Packer, MSGFLAG_VITAL, false, g_Config.m_ClDummy);
+						}
 					}
 
 					// ack snapshot
@@ -2705,23 +2709,6 @@ void CClient::Run()
 			thread_sleep(g_Config.m_DbgHitch);
 			g_Config.m_DbgHitch = 0;
 		}
-
-		/*
-		if(ReportTime < time_get())
-		{
-			if(0 && g_Config.m_Debug)
-			{
-				dbg_msg("client/report", "fps=%.02f (%.02f %.02f) netstate=%d",
-					m_Frames/(float)(ReportInterval/time_freq()),
-					1.0f/m_RenderFrameTimeHigh,
-					1.0f/m_RenderFrameTimeLow,
-					m_NetClient.State());
-			}
-			m_RenderFrameTimeLow = 1;
-			m_RenderFrameTimeHigh = 0;
-			m_RenderFrames = 0;
-			ReportTime += ReportInterval;
-		}*/
 
 		// update local time
 		m_LocalTime = (time_get()-m_LocalStartTime)/(float)time_freq();

@@ -1671,7 +1671,7 @@ void CGameContext::ConTuneZone(IConsole::IResult *pResult, void *pUserData)
 	const char *pParamName = pResult->GetString(1);
 	float NewValue = pResult->GetFloat(2);
 	
-	if (List >= 0 && List < 256)
+	if (List >= 0 && List < NUM_TUNINGZONES)
 	{
 		if(pSelf->TuningList()[List].Set(pParamName, NewValue))
 		{
@@ -1690,7 +1690,7 @@ void CGameContext::ConTuneDumpZone(IConsole::IResult *pResult, void *pUserData)
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int List = pResult->GetInteger(0);
 	char aBuf[256];
-	if (List >= 0 && List < 256)
+	if (List >= 0 && List < NUM_TUNINGZONES)
 	{
 		for(int i = 0; i < pSelf->TuningList()[List].Num(); i++)
 		{
@@ -1709,7 +1709,7 @@ void CGameContext::ConTuneResetZone(IConsole::IResult *pResult, void *pUserData)
 	if (pResult->NumArguments())
 	{
 		int List = pResult->GetInteger(0);
-		if (List >= 0 && List < 256)
+		if (List >= 0 && List < NUM_TUNINGZONES)
 		{
 			pSelf->TuningList()[List] = TuningParams;
 			char aBuf[256];
@@ -1720,7 +1720,7 @@ void CGameContext::ConTuneResetZone(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		for (int i = 0; i < 256; i++)
+		for (int i = 0; i < NUM_TUNINGZONES; i++)
 		{
 			*(pSelf->TuningList()+i) = TuningParams;
 			pSelf->SendTuningParams(-1, i);
@@ -1735,7 +1735,7 @@ void CGameContext::ConTuneSetZoneMsgEnter(IConsole::IResult *pResult, void *pUse
 	if (pResult->NumArguments())
 	{
 		int List = pResult->GetInteger(0);
-		if (List >= 0 && List < 256)
+		if (List >= 0 && List < NUM_TUNINGZONES)
 		{
 			str_format(pSelf->m_ZoneEnterMsg[List], sizeof(pSelf->m_ZoneEnterMsg[List]), pResult->GetString(1));
 		}
@@ -1748,7 +1748,7 @@ void CGameContext::ConTuneSetZoneMsgLeave(IConsole::IResult *pResult, void *pUse
 	if (pResult->NumArguments())
 	{
 		int List = pResult->GetInteger(0);
-		if (List >= 0 && List < 256)
+		if (List >= 0 && List < NUM_TUNINGZONES)
 		{
 			str_format(pSelf->m_ZoneLeaveMsg[List], sizeof(pSelf->m_ZoneLeaveMsg[List]), pResult->GetString(1));
 		}
@@ -2251,7 +2251,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 
 	// Reset Tunezones
 	CTuningParams TuningParams;
-	for (int i = 0; i < 256; i++)
+	for (int i = 0; i < NUM_TUNINGZONES; i++)
 	{
 		TuningList()[i] = TuningParams;
 		TuningList()[i].Set("gun_curvature", 0);
@@ -2261,7 +2261,7 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		TuningList()[i].Set("shotgun_speeddiff", 0);
 	}
 
-	for (int i = 0; i < 256; i++) // decided to send no text on changing Tunezones for now
+	for (int i = 0; i < NUM_TUNINGZONES; i++) // decided to send no text on changing Tunezones for now
 	{
 		str_format(m_ZoneEnterMsg[i], sizeof(m_ZoneEnterMsg[i]), "", i);
 		str_format(m_ZoneLeaveMsg[i], sizeof(m_ZoneLeaveMsg[i]), "", i);
@@ -2288,6 +2288,8 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		g_Config.m_SvOldTeleportHook = 0;
 		g_Config.m_SvOldTeleportWeapons = 0;
 		g_Config.m_SvTeleportHoldHook = 0;
+		g_Config.m_SvTeam = 1;
+		g_Config.m_SvShowOthersDefault = 0;
 	}
 
 	Console()->ExecuteFile(g_Config.m_SvResetFile);
@@ -2308,6 +2310,21 @@ void CGameContext::OnInit(/*class IKernel *pKernel*/)
 		m_pController = new CGameControllerDM(this);*/
 	m_pController = new CGameControllerDDRace(this);
 	((CGameControllerDDRace*)m_pController)->m_Teams.Reset();
+
+	if(g_Config.m_SvSoloServer)
+	{
+		g_Config.m_SvTeam = 3;
+		g_Config.m_SvShowOthersDefault = 1;
+
+		Tuning()->Set("player_collision", 0);
+		Tuning()->Set("player_hooking", 0);
+
+		for (int i = 0; i < NUM_TUNINGZONES; i++)
+		{
+			TuningList()[i].Set("player_collision", 0);
+			TuningList()[i].Set("player_hooking", 0);
+		}
+	}
 
 	// delete old score object
 	if(m_pScore)

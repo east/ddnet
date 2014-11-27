@@ -273,6 +273,7 @@ MACRO_CONFIG_INT(ConnTimeoutProtection, conn_timeout_protection, 1000, 5, 10000,
 MACRO_CONFIG_INT(ClShowIDs, cl_show_ids, 0, 0, 1, CFGFLAG_SAVE|CFGFLAG_CLIENT, "Whether to show client ids in scoreboard")
 MACRO_CONFIG_INT(ClAutoRaceRecord, cl_auto_race_record, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Save the best demo of each race")
 MACRO_CONFIG_INT(ClDemoName, cl_demo_name, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Save the player name within the demo")
+MACRO_CONFIG_INT(ClDemoAssumeRace, cl_demo_assume_race, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Assume that demos are race demos")
 MACRO_CONFIG_INT(ClRaceGhost, cl_race_ghost, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Enable ghost")
 MACRO_CONFIG_INT(ClRaceShowGhost, cl_race_show_ghost, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Show ghost")
 MACRO_CONFIG_INT(ClRaceSaveGhost, cl_race_save_ghost, 1, 0, 1, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Save ghost")
@@ -317,10 +318,9 @@ MACRO_CONFIG_INT(SvRankCheats, sv_rank_cheats, 0, 0, 1, CFGFLAG_SERVER, "Enable 
 MACRO_CONFIG_INT(SvSpoofProtection, sv_spoof_protection, 0, 0, 1, CFGFLAG_SERVER, "Enable spoof protection")
 MACRO_CONFIG_INT(SvShutdownWhenEmpty, sv_shutdown_when_empty, 0, 0, 1, CFGFLAG_SERVER, "Shutdown server as soon as noone is on it anymore")
 MACRO_CONFIG_INT(SvKillProtection, sv_kill_protection, 20, 0, 9999, CFGFLAG_SERVER, "0 - Disable, 1-9999 minutes")
-MACRO_CONFIG_INT(SvClientSuggestion, sv_client_suggestion, 1, 0, 1, CFGFLAG_SERVER, "Enable suggestion to use DDNet client when joining a server")
-
-MACRO_CONFIG_STR(SvClientSuggestionOther, sv_client_suggestion_other, 128, "Get the client from ddnet.tw to use all features on DDNet.", CFGFLAG_SERVER, "Broadcast to display to players without DDNet client")
-MACRO_CONFIG_STR(SvClientSuggestionOld, sv_client_suggestion_old, 128, "Your client version is old. Update it on ddnet.tw for new features!", CFGFLAG_SERVER, "Broadcast to display to players with an old version of DDNet client")
+MACRO_CONFIG_INT(SvSoloServer, sv_solo_server, 0, 0, 1, CFGFLAG_SERVER, "Set server to solo mode (no player interactions, has to be set before loading the map)")
+MACRO_CONFIG_STR(SvClientSuggestion, sv_client_suggestion, 128, "Get the client from ddnet.tw to use all features on DDNet", CFGFLAG_SERVER, "Broadcast to display to players without DDNet client")
+//MACRO_CONFIG_STR(SvClientSuggestionOld, sv_client_suggestion_old, 128, "Your client version is old. Update it on ddnet.tw for new features!", CFGFLAG_SERVER, "Broadcast to display to players with an old version of DDNet client")
 
 // netlimit
 MACRO_CONFIG_INT(SvNetlimit, sv_netlimit, 0, 0, 10000, CFGFLAG_SERVER, "Netlimit: Maximum amount of traffic a client is allowed to use (in kb/s)")
