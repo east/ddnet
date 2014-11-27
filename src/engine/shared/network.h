@@ -286,7 +286,9 @@ public:
 	//
 	int Recv(CNetChunk *pChunk);
 	int RecvSocket(NETSOCKET Socket, CNetChunk *pChunk);
+	int SendEx(CNetChunk *pChunk, NETSOCKET Socket);
 	int Send(CNetChunk *pChunk);
+	int SendMaster(CNetChunk *pChunk);
 	int Update();
 
 	//

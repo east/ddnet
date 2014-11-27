@@ -256,6 +256,16 @@ int CNetServer::Recv(CNetChunk *pChunk)
 
 int CNetServer::Send(CNetChunk *pChunk)
 {
+	return SendEx(pChunk, m_aSockets[m_LastChunkSock]);
+}
+
+int CNetServer::SendMaster(CNetChunk *pChunk)
+{
+	return SendEx(pChunk, m_aSockets[0]);
+}
+
+int CNetServer::SendEx(CNetChunk *pChunk, NETSOCKET Socket)
+{
 	if(pChunk->m_DataSize >= NET_MAX_PAYLOAD)
 	{
 		dbg_msg("netserver", "packet payload too big. %d. dropping packet", pChunk->m_DataSize);
@@ -265,7 +275,7 @@ int CNetServer::Send(CNetChunk *pChunk)
 	if(pChunk->m_Flags&NETSENDFLAG_CONNLESS)
 	{
 		// send connectionless packet
-		CNetBase::SendPacketConnless(m_aSockets[m_LastChunkSock], &pChunk->m_Address, pChunk->m_pData, pChunk->m_DataSize);
+		CNetBase::SendPacketConnless(Socket, &pChunk->m_Address, pChunk->m_pData, pChunk->m_DataSize);
 	}
 	else
 	{
